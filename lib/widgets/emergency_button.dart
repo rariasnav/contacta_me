@@ -22,7 +22,7 @@ class _EmergencyButtonState extends State<EmergencyButton> {
       height: 150,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: Color(0xFFC2C2C2), // contorno gris
+        color: Color(0xFFC2C2C2),
       ),
       padding: const EdgeInsets.all(10),
       child: Material(

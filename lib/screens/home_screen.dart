@@ -20,48 +20,70 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
 
+  void _showMessage(String msg, {bool success = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: success ? Colors.green : Colors.red,
+      ),
+    );
+  }
+
   void _handleEmergencyAlert(User user) async {
-    if (!mounted) return;
+  if (!mounted) return;
 
+  try {        
+    // Solicitar permisos
     final permisosOk = await PermissionsHelper.requestLocationAndPhonePermissions();
-    if (!mounted) return;
-
-    if (!permisosOk) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Se requieren permisos para continuar")),
-      );
+    
+    if (!mounted || !permisosOk) {
+      _showMessage("Se requieren permisos para continuar");
       return;
     }
 
+    // Obtener ubicación actual
+    _showMessage("Obteniendo ubicación...", success: true);
     final location = await LocationHelper.getCurrentLocation();
-    if (!mounted) return;
-
-    if (location == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No se pudo obtener ubicación")),
-      );
+    
+    if (!mounted || location == null) {
+      _showMessage("No se pudo obtener ubicación");
       return;
     }
 
-    final result  = await AlertService.sendAlert(
+    // Enviar alerta
+    _showMessage("Enviando alerta de emergencia...", success: true);
+    final result = await AlertService.sendAlert(
       color: 'Roja',
       celular: user.celular,
       latitud: location.latitude,
       longitud: location.longitude,
     );
-    if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(result['message']),
-        backgroundColor: result['success'] ? Colors.green : Colors.red,
-      ),
+    if (!mounted) return;
+    
+    // Mostrar resultado de la alerta
+    _showMessage(
+      result['message'],
+      success: result['success'],
     );
 
+    // Realizar llamada de emergencia si la alerta fue exitosa
     if (result['success']) {
-      await CallHelper.makeEmergencyCall("+576053225178"); 
+      _showMessage("Realizando llamada de emergencia...", success: true);
+      
+      final callSuccess = await CallHelper.makeEmergencyCall("6053225178");
+      
+      if (!mounted) return;
+      
+      if (!callSuccess) {
+        _showMessage("Error al realizar la llamada de emergencia");
+      }
     }
+  } catch (e) {
+    if (!mounted) return;
+    _showMessage("Error en alerta de emergencia: $e");
   }
+}
 
   bool _redirected = false;
 
@@ -102,7 +124,6 @@ class _HomeScreenState extends State<HomeScreen> {
               InfoLine(label: "Dispositivo:", value: "Aplicación Móvil"),
               const SizedBox(height: 32),
 
-              // Recuadro tipo tarjeta con el botón de ayuda dentro
               Center(
                 child: Container(
                   height: 300,
@@ -146,7 +167,6 @@ class _HomeScreenState extends State<HomeScreen> {
               // Botón de ayuda
               HelpButton(
                 onPressed: () {
-                  // Aquí puedes mostrar un dialog o pantalla con explicación
                   showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
